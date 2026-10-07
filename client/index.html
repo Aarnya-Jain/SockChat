@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real-Time Collaborative Canvas | CN Lab PBL</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="lobby-container">
+    <div class="lobby-header">
+      <span class="lobby-badge">Computer Networks Lab PBL • 24B15CS313</span>
+      <h1 class="lobby-title">Collaborative Canvas</h1>
+      <p class="lobby-subtitle">Real-time drawing and instant messaging powered by a Python raw TCP socket networking core.</p>
+    </div>
+
+    <div class="lobby-card">
+      <div class="tabs-nav">
+        <button id="tabCreate" class="tab-btn active" type="button">Create Room</button>
+        <button id="tabJoin" class="tab-btn" type="button">Join Room</button>
+      </div>
+
+      <form id="lobbyForm">
+        <div class="form-group">
+          <label for="displayName">Your Display Name</label>
+          <input type="text" id="displayName" class="input-field" placeholder="e.g. Alice" maxlength="32" required autofocus>
+        </div>
+
+        <div id="joinKeyGroup" class="form-group" style="display: none;">
+          <label for="roomKey">Room Key (5 characters)</label>
+          <input type="text" id="roomKey" class="input-field" placeholder="e.g. A7K92" maxlength="16" style="text-transform: uppercase; font-family: monospace; letter-spacing: 2px;">
+        </div>
+
+        <button type="submit" id="submitBtn" class="btn-primary">
+          <span id="btnIcon">✨</span>
+          <span id="btnText">Create New Room</span>
+        </button>
+      </form>
+
+      <div class="meta-info">
+        <span>Architecture: Browser UI ➔ HTTP/SSE Bridge ➔ Python TCP Sockets</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="/js/lobby.js"></script>
+</body>
+</html>

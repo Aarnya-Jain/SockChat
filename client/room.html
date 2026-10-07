@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collaborative Room | SockChat</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Header Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="header-title">
+        <span>🎨</span>
+        <span>SockChat</span>
+      </div>
+      <div id="roomBadge" class="room-badge" title="Click to copy invite link">
+        <span>Room:</span>
+        <strong id="roomCodeDisplay">-----</strong>
+        <span class="copy-icon">📋</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="status-pill">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+      <div class="user-count-badge">
+        <span id="userCountDisplay">1</span>/<span id="maxUsersDisplay">4</span> Users
+      </div>
+      <button id="leaveBtn" class="btn-leave" type="button">Leave Room</button>
+    </div>
+  </header>
+
+  <!-- Main Collaborative Area -->
+  <main class="workspace">
+    <!-- Canvas Drawing Viewport -->
+    <section class="canvas-area">
+      <!-- Floating Toolbar -->
+      <div class="toolbar">
+        <div class="tool-group">
+          <button id="toolPen" class="tool-btn active" title="Pen Tool">
+            <span>✏️</span> Pen
+          </button>
+          <button id="toolEraser" class="tool-btn" title="Eraser Tool">
+            <span>🧹</span> Eraser
+          </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="color-picker-wrapper">
+          <div class="color-swatch active" style="background-color: #0f172a;" data-color="#0f172a"></div>
+          <div class="color-swatch" style="background-color: #ef4444;" data-color="#ef4444"></div>
+          <div class="color-swatch" style="background-color: #3b82f6;" data-color="#3b82f6"></div>
+          <div class="color-swatch" style="background-color: #10b981;" data-color="#10b981"></div>
+          <div class="color-swatch" style="background-color: #f59e0b;" data-color="#f59e0b"></div>
+          <div class="color-swatch" style="background-color: #8b5cf6;" data-color="#8b5cf6"></div>
+          <input type="color" id="customColor" value="#0f172a" style="width: 26px; height: 26px; border: none; background: none; cursor: pointer; padding: 0;">
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="size-slider-wrapper">
+          <span>Size:</span>
+          <input type="range" id="sizeSlider" class="size-slider" min="1" max="40" value="4">
+          <span id="sizeValue">4px</span>
+        </div>
+
+        <div class="divider"></div>
+
+        <button id="clearBtn" class="tool-btn" title="Clear Canvas">
+          <span>🗑️</span> Clear
+        </button>
+      </div>
+
+      <!-- Canvas Viewport -->
+      <div class="canvas-viewport" id="canvasContainer">
+        <canvas id="canvas" width="1200" height="800"></canvas>
+      </div>
+    </section>
+
+    <!-- Sidebar: Participants + Real-Time Chat -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="participants-title">Connected Members</div>
+        <div id="participantsList" class="participants-list">
+          <!-- User chips dynamically rendered here -->
+        </div>
+      </div>
+
+      <div class="chat-container">
+        <div id="chatMessages" class="chat-messages">
+          <!-- Chat messages dynamically rendered here -->
+        </div>
+
+        <form id="chatForm" class="chat-input-area">
+          <input type="text" id="chatInput" class="chat-input" placeholder="Type a message..." maxlength="500" autocomplete="off" required>
+          <button type="submit" class="chat-send-btn">Send</button>
+        </form>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast"></div>
+
+  <!-- JavaScript Modules -->
+  <script src="/js/transport.js"></script>
+  <script src="/js/canvas.js"></script>
+  <script src="/js/chat.js"></script>
+  <script>
+    // App Bootstrap & Coordination
+    document.addEventListener("DOMContentLoaded", () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get("action");
+      const roomParam = urlParams.get("room");
+      const name = urlParams.get("name") || "Guest_" + Math.floor(Math.random() * 1000);
+
+      // Elements
+      const roomBadge = document.getElementById("roomBadge");
+      const roomCodeDisplay = document.getElementById("roomCodeDisplay");
+      const statusDot = document.getElementById("statusDot");
+      const statusText = document.getElementById("statusText");
+      const userCountDisplay = document.getElementById("userCountDisplay");
+      const maxUsersDisplay = document.getElementById("maxUsersDisplay");
+      const participantsList = document.getElementById("participantsList");
+      const leaveBtn = document.getElementById("leaveBtn");
+      const toast = document.getElementById("toast");
+
+      function showToast(msg, isError = false) {
+        toast.textContent = msg;
+        toast.className = `toast show ${isError ? "error" : ""}`;
+        setTimeout(() => { toast.className = "toast"; }, 3000);
+      }
+
+      // Copy invite link
+      roomBadge.addEventListener("click", () => {
+        const roomCode = roomCodeDisplay.textContent;
+        if (roomCode && roomCode !== "-----") {
+          const inviteUrl = `${window.location.origin}/?join=${roomCode}`;
+          navigator.clipboard.writeText(inviteUrl).then(() => {
+            showToast("Invite link copied to clipboard! 📋");
+          }).catch(() => {
+            navigator.clipboard.writeText(roomCode);
+            showToast(`Room code ${roomCode} copied! 📋`);
+          });
+        }
+      });
+
+      // Leave Room
+      leaveBtn.addEventListener("click", () => {
+        transport.sendAction({ type: "leave" });
+        window.location.href = "/";
+      });
+
+      // Instantiate Transport & Managers
+      const transport = new NetworkTransport();
+      const canvasEngine = new CollaborativeCanvas(document.getElementById("canvas"), transport);
+      const chatEngine = new ChatManager(
+        document.getElementById("chatMessages"),
+        document.getElementById("chatForm"),
+        document.getElementById("chatInput"),
+        transport
+      );
+
+      // Status updates
+      transport.onStatusChange((status) => {
+        if (status === "connected") {
+          statusDot.className = "status-dot connected";
+          statusText.textContent = "Connected (TCP Core)";
+        } else if (status === "connecting") {
+          statusDot.className = "status-dot";
+          statusText.textContent = "Connecting...";
+        } else {
+          statusDot.className = "status-dot disconnected";
+          statusText.textContent = "Disconnected";
+        }
+      });
+
+      // Handle server events
+      transport.onMessage((msg) => {
+        const mtype = msg.type;
+
+        if (mtype === "bridge_connected") {
+          // Handshake complete: dispatch room action
+          if (action === "create") {
+            transport.sendAction({ type: "create_room", name: name });
+          } else if (roomParam) {
+            transport.sendAction({ type: "join_room", room: roomParam, name: name });
+          } else {
+            transport.sendAction({ type: "create_room", name: name });
+          }
+        }
+
+        else if (mtype === "room_created" || mtype === "joined_success") {
+          const rKey = msg.room;
+          roomCodeDisplay.textContent = rKey;
+          chatEngine.setCurrentUser(msg.user);
+          // Update URL without reloading
+          const newUrl = `${window.location.pathname}?room=${rKey}&name=${encodeURIComponent(name)}`;
+          window.history.replaceState({}, "", newUrl);
+        }
+
+        else if (mtype === "room_state") {
+          roomCodeDisplay.textContent = msg.room;
+          userCountDisplay.textContent = msg.user_count;
+          maxUsersDisplay.textContent = msg.max_users || 4;
+          updateParticipants(msg.users);
+          
+          // Reconstruct drawing history
+          if (Array.isArray(msg.strokes)) {
+            canvasEngine.loadHistory(msg.strokes);
+          }
+          // Load chat history
+          if (Array.isArray(msg.chat)) {
+            chatEngine.loadHistory(msg.chat);
+          }
+        }
+
+        else if (mtype === "user_joined") {
+          userCountDisplay.textContent = msg.user_count;
+          updateParticipants(msg.users);
+          chatEngine.addSystemMessage(`${msg.user.name} joined the room`);
+          showToast(`${msg.user.name} joined`);
+        }
+
+        else if (mtype === "user_left") {
+          userCountDisplay.textContent = msg.user_count;
+          updateParticipants(msg.users);
+          chatEngine.addSystemMessage(`${msg.name} left the room`);
+        }
+
+        else if (mtype === "chat") {
+          chatEngine.receiveMessage(msg);
+        }
+
+        else if (mtype === "draw") {
+          canvasEngine.drawRemoteSegment(msg);
+        }
+
+        else if (mtype === "clear") {
+          canvasEngine.clearCanvasLocally();
+          chatEngine.addSystemMessage(`${msg.from || "A user"} cleared the canvas`);
+        }
+
+        else if (mtype === "error") {
+          showToast(`Error: ${msg.message || msg.code}`, true);
+          if (msg.code === "ROOM_NOT_FOUND" || msg.code === "ROOM_FULL") {
+            setTimeout(() => { window.location.href = "/"; }, 2500);
+          }
+        }
+      });
+
+      function updateParticipants(users) {
+        participantsList.innerHTML = "";
+        if (!Array.isArray(users)) return;
+        users.forEach((u) => {
+          const chip = document.createElement("div");
+          chip.className = "participant-chip";
+          chip.innerHTML = `
+            <span class="participant-dot" style="background-color: ${u.color || '#38bdf8'};"></span>
+            <span>${escapeHtml(u.name)}</span>
+          `;
+          participantsList.appendChild(chip);
+        });
+      }
+
+      function escapeHtml(str) {
+        return (str || "").replace(/[&<>'"]/g, 
+          tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+      }
+
+      // Connect transport to bridge
+      transport.connect();
+    });
+  </script>
+</body>
+</html>

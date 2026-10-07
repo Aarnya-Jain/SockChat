@@ -1,0 +1,10 @@
+# Collaborative Canvas & Chat
+# Core project relies 100% on Python 3 standard library:
+# - socket (Raw TCP AF_INET / SOCK_STREAM)
+# - http.server (HTTP & Server-Sent Events bridge)
+# - threading (Concurrent connection management)
+# - json (Application message serialization/framing)
+# - secrets (Cryptographically secure room keys)
+#
+# Optional test / analysis tools:
+# jsonschema>=4.0.0
