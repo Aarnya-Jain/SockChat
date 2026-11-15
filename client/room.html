@@ -5,19 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Collaborative Room | SockChat</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/font-awesome/css/font-awesome.min.css">
+
 </head>
 <body>
   <!-- Header Bar -->
   <header class="app-header">
     <div class="header-left">
       <div class="header-title">
-        <span>🎨</span>
+        <span></span>
         <span>SockChat</span>
       </div>
       <div id="roomBadge" class="room-badge" title="Click to copy invite link">
         <span>Room:</span>
         <strong id="roomCodeDisplay">-----</strong>
-        <span class="copy-icon">📋</span>
+        <span class="copy-icon"><i class="fa fa-clone fa-fw" aria-hidden="true"></i></span>
       </div>
     </div>
 
@@ -30,7 +32,7 @@
         <span id="userCountDisplay">1</span>/<span id="maxUsersDisplay">4</span> Users
       </div>
       <button id="toggleSidebarBtn" class="btn-sidebar-toggle active" type="button" title="Toggle Chat and Participants">
-        <span>💬</span> <span class="hide-sm">Chat</span>
+        <span><i class="fa fa-comments-o fa-fw" aria-hidden="true"></i></span> <span class="hide-sm">Chat</span>
       </button>
       <button id="leaveBtn" class="btn-leave" type="button">Leave Room</button>
     </div>
@@ -44,10 +46,10 @@
       <div class="toolbar">
         <div class="tool-group">
           <button id="toolPen" class="tool-btn active" title="Pen Tool">
-            <span>✏️</span> Pen
+            <span><i class="fa fa-pencil fa-fw" aria-hidden="true"></i></span> Pen
           </button>
           <button id="toolEraser" class="tool-btn" title="Eraser Tool">
-            <span>🧹</span> Eraser
+            <span><i class="fa fa-eraser fa-fw" aria-hidden="true"></i></span> Eraser
           </button>
         </div>
 
@@ -74,7 +76,7 @@
         <div class="divider"></div>
 
         <button id="clearBtn" class="tool-btn" title="Clear Canvas">
-          <span>🗑️</span> Clear
+          <span><i class="fa fa-trash-o fa-fw" aria-hidden="true"></i></span> Clear
         </button>
       </div>
 
@@ -230,7 +232,7 @@
           userCountDisplay.textContent = msg.user_count;
           maxUsersDisplay.textContent = msg.max_users || 4;
           updateParticipants(msg.users);
-          
+
           // Reconstruct drawing history
           if (Array.isArray(msg.strokes)) {
             canvasEngine.loadHistory(msg.strokes);
@@ -295,7 +297,7 @@
       }
 
       function escapeHtml(str) {
-        return (str || "").replace(/[&<>'"]/g, 
+        return (str || "").replace(/[&<>'"]/g,
           tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
       }
 
