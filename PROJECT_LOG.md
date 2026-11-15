@@ -109,3 +109,21 @@ This log file tracks the summary of development chats and actions taken across p
 ### 4. Verification & Testing
 - Added regression test suite in `tests/test_bugs_fixed.py` covering multi-user chat history, stroke batching, and synchronized join/leave events.
 - All 31 unit and integration tests passing cleanly (`python3 -m unittest discover tests`).
+
+---
+
+## Session 4 — 2026-11-15
+
+### Summary
+- Reviewed deployment requirements; user requested steps only (no code changes).
+- Confirmed zero external dependencies — pure Python 3.10+ stdlib.
+- Documented all configurable environment variables (`TCP_HOST`, `TCP_PORT`, `WEB_HOST`, `WEB_PORT`).
+- Produced full deployment guide covering:
+  - Local / LAN run (`python3 server/app.py`)
+  - VPS / Cloud VM setup (Ubuntu + SCP/git clone)
+  - Background process options: `screen`, `tmux`, `systemd` with auto-restart
+  - Custom port overrides via env vars (no code edits)
+  - Nginx reverse proxy config with SSE-safe headers (`proxy_buffering off`, `X-Accel-Buffering: no`)
+  - Quick verification commands for web + TCP health check
+- No code files were modified this session.
+- Git state: clean at `c5c3123`.

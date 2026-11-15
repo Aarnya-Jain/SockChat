@@ -5,3 +5,8 @@ as you can see in the image too:
 3. chat section with history not visible in both the clients
 4. it is not synced ( showing 1/4 in one and 2/4 in other )
 5. ui is buggy and not Responsive
+
+new bugs
+6. its not updating automatically if the host leaves the room , like i need to refresh , then only it reflects even in the terminal log
+7. on refreshing the chat disappears , make it store it local for now and cleanly clearing on room closing , like coz i just need to showcase it as a pbl for now , or if any better scalable approcah is there tell me
+8. what is that chat option which on hovering shows "toggle chat and participants" , what is its work 
