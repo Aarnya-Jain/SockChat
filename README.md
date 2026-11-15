@@ -1,16 +1,11 @@
 # Real-Time Collaborative Canvas (with Chat)
 
-> **Computer Networks Lab PBL (Project-Based Learning)**  
-> **Course Code:** `24B15CS313` | **Semester:** 5th  
-> **Core Networking Engine:** Demonstrable Python Raw TCP Sockets (`socket.socket(AF_INET, SOCK_STREAM)`)
 
----
-
-## 📌 Project Overview
+## Overview
 
 **Collaborative Canvas** is a lightweight, real-time shared drawing and instant messaging web application. A user opens a hosted URL in any standard browser, creates or joins an ephemeral room using a unique 5-character room key, and collaborates on a shared canvas while chatting with peers in real time.
 
-### 🌐 Key Architectural Concept: Browser UI + Python TCP Socket Core
+### Key Architectural Concept: Browser UI + Python TCP Socket Core
 Standard web browsers cannot open arbitrary raw TCP sockets due to JavaScript sandbox restrictions. To satisfy the academic requirement of demonstrating Python's raw TCP socket layer while maintaining a frictionless browser user experience:
 - The **Frontend** runs modern HTML5 Canvas + CSS + JavaScript.
 - A **Python Web Bridge** (`server/app.py`) serves the static web UI and provides an HTTP/SSE interface.
@@ -20,7 +15,7 @@ Standard web browsers cannot open arbitrary raw TCP sockets due to JavaScript sa
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### 1. Requirements
 - Python 3.10+ (Standard library only; zero external dependencies required!)
@@ -46,7 +41,7 @@ http://localhost:8080
 
 ---
 
-## 💻 Standalone Terminal CLI Client
+## Standalone Terminal CLI Client
 
 To test or demonstrate the raw TCP socket layer directly without any web browser, use the CLI client:
 ```bash
@@ -60,7 +55,7 @@ Supports commands:
 
 ---
 
-## 🧪 Running the Test Suite
+## Running the Test Suite
 
 The project includes unit and end-to-end integration tests covering protocol framing, room management, capacity enforcement, cross-room isolation, raw TCP socket streams, and the HTTP/SSE bridge:
 
@@ -72,7 +67,7 @@ All 27 test cases execute in ~3 seconds.
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 SockChat/
@@ -116,39 +111,3 @@ SockChat/
 ├── PROJECT_LOG.md            # Interaction and development session log
 └── README.md
 ```
-
----
-
-## 🔍 Wireshark Demonstration (Viva Checklist)
-
-1. Open Wireshark on interface `lo` (Loopback).
-2. Set filter:
-   ```wireshark
-   tcp.port == 9999
-   ```
-3. Demonstrate:
-   - **Three-way Handshake:** `SYN` -> `SYN, ACK` -> `ACK`.
-   - **Application Framing:** Inspect `PSH, ACK` frames containing newline-terminated JSON payloads.
-   - **Vector Optimization:** Discuss how compact line segments (`x1, y1, x2, y2`) reduce network bandwidth compared to sending full bitmap snapshots.
-   - **Graceful Teardown:** Inspect `FIN, ACK` sequence when leaving a room.
-
-For the complete guide, see [`docs/wireshark/guide.md`](file:///home/aarnya-jain/Documents/projects/SockChat/docs/wireshark/guide.md).
-
----
-
-## 🎓 Course Outcome Mapping
-
-| Outcome Code | Description & Project Evidence |
-| :--- | :--- |
-| **C3701** | Client/server topology, IP/port configuration, TCP connections, and socket lifecycle. |
-| **C3702** | Python TCP socket implementation, concurrent multi-threading, room broadcasting, message framing protocol. |
-| **C3704** | Wireshark packet capture analysis, TCP sequence numbers, SYN/ACK handshake, connection teardown. |
-| **C3705** | Threat model, secure room key entropy, schema validation, room capacity boundaries, cross-room isolation. |
-
----
-
-## 🌍 UN Sustainable Development Goals (SDG) Alignment
-
-- **SDG 9 (Industry, Innovation & Infrastructure):** Real-time networked communication, distributed client-server systems.
-- **SDG 4 (Quality Education):** Practical application of computer networking concepts in distributed interactive computing.
-- **SDG 8 (Decent Work & Economic Growth):** Professional software engineering practices with robust automated testing.
