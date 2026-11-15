@@ -96,6 +96,26 @@ class TestProtocolValidation(unittest.TestCase):
             validate_client_message(invalid)
         self.assertEqual(ctx.exception.code, "CHAT_TOO_LONG")
 
+    def test_validate_draw_batch(self):
+        valid = {
+            "type": "draw_batch",
+            "segments": [
+                {"x1": 1, "y1": 2, "x2": 3, "y2": 4, "color": "#112233", "width": 3, "mode": "pen"},
+                {"x1": 5, "y1": 6, "x2": 7, "y2": 8, "color": "#ffffff", "width": 10, "mode": "eraser"}
+            ]
+        }
+        res = validate_client_message(valid)
+        self.assertEqual(res["type"], "draw_batch")
+        self.assertEqual(len(res["segments"]), 2)
+        self.assertEqual(res["segments"][0]["color"], "#112233")
+        self.assertEqual(res["segments"][1]["mode"], "eraser")
+
+    def test_validate_draw_batch_empty(self):
+        invalid = {"type": "draw_batch", "segments": []}
+        with self.assertRaises(ProtocolError) as ctx:
+            validate_client_message(invalid)
+        self.assertEqual(ctx.exception.code, "INVALID_DRAW_BATCH")
+
     def test_validate_unknown_type(self):
         invalid = {"type": "unknown_action"}
         with self.assertRaises(ProtocolError) as ctx:

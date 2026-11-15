@@ -63,6 +63,25 @@ class TestRoomIsolation(unittest.TestCase):
         charlie_msgs = self.conn_mgr.sent_messages.get("c3", [])
         self.assertFalse(any(m.get("type") == "draw" for m in charlie_msgs))
 
+    def test_drawing_batch_isolation(self):
+        # Alice draws batch in Room A
+        batch = {
+            "type": "draw_batch",
+            "segments": [
+                {"x1": 10, "y1": 20, "x2": 30, "y2": 40, "color": "#112233", "width": 5, "mode": "pen"},
+                {"x1": 30, "y1": 40, "x2": 50, "y2": 60, "color": "#112233", "width": 5, "mode": "pen"}
+            ]
+        }
+        self.router.handle_message("c1", batch)
+
+        # Bob (c2, in Room A) should receive the draw_batch event
+        bob_msgs = self.conn_mgr.sent_messages.get("c2", [])
+        self.assertTrue(any(m.get("type") == "draw_batch" for m in bob_msgs))
+
+        # Charlie (c3, in Room B) must NOT receive the draw_batch event
+        charlie_msgs = self.conn_mgr.sent_messages.get("c3", [])
+        self.assertFalse(any(m.get("type") == "draw_batch" for m in charlie_msgs))
+
     def test_chat_isolation(self):
         # Alice chats in Room A
         self.router.handle_message("c1", {"type": "chat", "text": "Secret meeting in Room A"})

@@ -86,16 +86,14 @@ class SocketServer:
         """
         stream_buf = StreamBuffer(max_message_bytes=config.MAX_MESSAGE_BYTES)
         try:
-            # Set socket timeout for inactivity detection if needed
-            client_sock.settimeout(config.SOCKET_TIMEOUT)
+            # Periodic timeout allows checking self.is_running cleanly on shutdown
+            client_sock.settimeout(1.0)
 
             while self.is_running:
                 try:
                     chunk = client_sock.recv(config.RECV_BUFFER_SIZE)
                 except socket.timeout:
-                    # Inactivity check: send ping or close
-                    logger.debug("Socket timeout on %s, closing", conn_id)
-                    break
+                    continue
                 except (socket.error, ConnectionResetError) as exc:
                     logger.debug("Socket read error on %s: %s", conn_id, exc)
                     break

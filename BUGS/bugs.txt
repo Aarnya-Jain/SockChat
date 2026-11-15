@@ -1,0 +1,7 @@
+the ones i found until now
+as you can see in the image too:
+1. both are not connected properly
+2. session times out early
+3. chat section with history not visible in both the clients
+4. it is not synced ( showing 1/4 in one and 2/4 in other )
+5. ui is buggy and not Responsive

@@ -106,10 +106,11 @@ class Room:
     def clear_strokes(self) -> None:
         self.strokes.clear()
 
-    def add_chat(self, from_name: str, text: str, user_color: str) -> Dict[str, Any]:
+    def add_chat(self, from_name: str, text: str, user_color: str, user_id: str = "") -> Dict[str, Any]:
         msg_obj = {
             "type": "chat",
             "from": from_name,
+            "user_id": user_id,
             "text": text,
             "color": user_color,
             "timestamp": time.time()

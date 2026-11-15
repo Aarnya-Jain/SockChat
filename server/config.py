@@ -24,5 +24,6 @@ MAX_CHAT_LENGTH = 500          # Maximum characters per chat message
 MAX_NAME_LENGTH = 32           # Maximum username length
 MAX_STROKES_HISTORY = 2000     # Maximum strokes preserved for canvas reconstruction
 MAX_CHAT_HISTORY = 100         # Maximum chat messages preserved for room history
-SOCKET_TIMEOUT = 120.0         # Socket inactivity timeout in seconds
+SOCKET_TIMEOUT = 300.0         # Socket inactivity timeout in seconds (5 minutes)
+HEARTBEAT_INTERVAL = 15.0      # Heartbeat ping interval in seconds
 RECV_BUFFER_SIZE = 4096        # TCP receive buffer chunk size

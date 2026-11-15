@@ -107,35 +107,23 @@ def validate_client_message(msg: Dict[str, Any]) -> Dict[str, Any]:
         return {"type": "chat", "text": text}
 
     elif msg_type == "draw":
-        # Draw segment from (x1, y1) to (x2, y2)
-        for coord in ("x1", "y1", "x2", "y2"):
-            val = msg.get(coord)
-            if not isinstance(val, (int, float)):
-                raise ProtocolError("INVALID_COORDINATES", f"Coordinate '{coord}' must be a number")
+        return _validate_draw_segment(msg)
 
-        color = msg.get("color", "#000000")
-        if not isinstance(color, str) or not HEX_COLOR_PATTERN.match(color):
-            # Fallback or strict check
-            color = "#000000"
-
-        width = msg.get("width", 3)
-        if not isinstance(width, (int, float)) or not (1 <= width <= 64):
-            width = 3
-
-        # Support optional mode: 'pen' or 'eraser'
-        mode = msg.get("mode", "pen")
-        if mode not in ("pen", "eraser"):
-            mode = "pen"
-
+    elif msg_type == "draw_batch":
+        raw_segments = msg.get("segments")
+        if not isinstance(raw_segments, list) or not raw_segments:
+            raise ProtocolError("INVALID_DRAW_BATCH", "Batch segments must be a non-empty list")
+        if len(raw_segments) > 200:
+            raw_segments = raw_segments[:200]
+        cleaned_segments = []
+        for seg in raw_segments:
+            if isinstance(seg, dict):
+                cleaned_segments.append(_validate_draw_segment(seg))
+        if not cleaned_segments:
+            raise ProtocolError("INVALID_DRAW_BATCH", "No valid segments in draw_batch")
         return {
-            "type": "draw",
-            "x1": round(float(msg["x1"]), 2),
-            "y1": round(float(msg["y1"]), 2),
-            "x2": round(float(msg["x2"]), 2),
-            "y2": round(float(msg["y2"]), 2),
-            "color": color,
-            "width": int(width),
-            "mode": mode
+            "type": "draw_batch",
+            "segments": cleaned_segments
         }
 
     elif msg_type == "clear":
@@ -149,6 +137,36 @@ def validate_client_message(msg: Dict[str, Any]) -> Dict[str, Any]:
 
     else:
         raise ProtocolError("UNKNOWN_TYPE", f"Unknown message type '{msg_type}'")
+
+
+def _validate_draw_segment(msg: Dict[str, Any]) -> Dict[str, Any]:
+    for coord in ("x1", "y1", "x2", "y2"):
+        val = msg.get(coord)
+        if not isinstance(val, (int, float)):
+            raise ProtocolError("INVALID_COORDINATES", f"Coordinate '{coord}' must be a number")
+
+    color = msg.get("color", "#000000")
+    if not isinstance(color, str) or not HEX_COLOR_PATTERN.match(color):
+        color = "#000000"
+
+    width = msg.get("width", 3)
+    if not isinstance(width, (int, float)) or not (1 <= width <= 64):
+        width = 3
+
+    mode = msg.get("mode", "pen")
+    if mode not in ("pen", "eraser"):
+        mode = "pen"
+
+    return {
+        "type": "draw",
+        "x1": round(float(msg["x1"]), 2),
+        "y1": round(float(msg["y1"]), 2),
+        "x2": round(float(msg["x2"]), 2),
+        "y2": round(float(msg["y2"]), 2),
+        "color": color,
+        "width": int(width),
+        "mode": mode
+    }
 
 
 def _validate_name(name: Any) -> str:

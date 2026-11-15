@@ -93,6 +93,13 @@ class BridgeRegistry:
                 return session
             return None
 
+    def remove_session(self, session: BridgeSession) -> None:
+        with self._lock:
+            current = self.sessions.get(session.session_id)
+            if current is session:
+                self.sessions.pop(session.session_id, None)
+            session.close()
+
     def remove(self, session_id: str) -> None:
         with self._lock:
             session = self.sessions.pop(session_id, None)
@@ -173,12 +180,21 @@ class WebBridgeHandler(SimpleHTTPRequestHandler):
 
         stream_buffer = StreamBuffer(max_message_bytes=config.MAX_MESSAGE_BYTES)
         logger.info("SSE client stream started for session %s", session_id)
+        session.sock.settimeout(config.HEARTBEAT_INTERVAL)
 
         try:
             while session.is_active:
-                # Read from raw TCP socket
+                # Read from raw TCP socket with heartbeat timeout
                 try:
                     chunk = session.sock.recv(config.RECV_BUFFER_SIZE)
+                except socket.timeout:
+                    # Inactivity heartbeat: keep both browser SSE and TCP socket alive
+                    try:
+                        self._send_sse_comment("heartbeat")
+                        session.send({"type": "ping"})
+                    except Exception:
+                        break
+                    continue
                 except (socket.error, ConnectionResetError):
                     break
 
@@ -193,6 +209,9 @@ class WebBridgeHandler(SimpleHTTPRequestHandler):
                     continue
 
                 for msg in messages:
+                    # Ignore internal pong replies on the browser stream
+                    if msg.get("type") == "pong":
+                        continue
                     self._send_sse_event(msg)
 
         except (BrokenPipeError, ConnectionResetError):
@@ -201,7 +220,13 @@ class WebBridgeHandler(SimpleHTTPRequestHandler):
             logger.debug("Exception in SSE stream for session %s: %s", session_id, exc)
         finally:
             logger.info("Closing bridge session and TCP socket for session %s", session_id)
-            registry.remove(session_id)
+            registry.remove_session(session)
+
+    def _send_sse_comment(self, comment: str = "heartbeat") -> None:
+        """Sends an SSE comment (e.g. : heartbeat\n\n) to keep HTTP connection alive."""
+        payload = f": {comment}\n\n".encode("utf-8")
+        self.wfile.write(payload)
+        self.wfile.flush()
 
     def _send_sse_event(self, data: dict) -> None:
         """Encodes dict to SSE format: data: <json>\n\n and writes to HTTP stream."""

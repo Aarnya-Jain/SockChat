@@ -15,9 +15,34 @@ class CollaborativeCanvas {
     this.tool = "pen"; // "pen" or "eraser"
     this.color = "#0f172a";
     this.width = 4;
+    this.pendingSegments = [];
+    this.flushTimer = null;
 
     this._setupUIControls();
     this._attachEventListeners();
+    this._startFlushLoop();
+  }
+
+  _startFlushLoop() {
+    this.flushTimer = setInterval(() => {
+      this._flushPendingSegments();
+    }, 25);
+  }
+
+  _flushPendingSegments() {
+    if (this.pendingSegments.length === 0) return;
+
+    const batch = this.pendingSegments;
+    this.pendingSegments = [];
+
+    if (batch.length === 1) {
+      this.transport.sendAction(batch[0]);
+    } else {
+      this.transport.sendAction({
+        type: "draw_batch",
+        segments: batch
+      });
+    }
   }
 
   _setupUIControls() {
@@ -119,11 +144,11 @@ class CollaborativeCanvas {
     this.lastX = coords.x;
     this.lastY = coords.y;
 
+    const strokeColor = this.tool === "eraser" ? "#ffffff" : this.color;
     // Draw single dot if clicked without dragging
-    this._renderSegment(coords.x, coords.y, coords.x + 0.1, coords.y + 0.1, 
-      this.tool === "eraser" ? "#ffffff" : this.color, this.width);
+    this._renderSegment(coords.x, coords.y, coords.x + 0.1, coords.y + 0.1, strokeColor, this.width);
 
-    this.transport.sendAction({
+    this.pendingSegments.push({
       type: "draw",
       x1: coords.x,
       y1: coords.y,
@@ -141,11 +166,11 @@ class CollaborativeCanvas {
     const coords = this._getCanvasCoordinates(e);
     const strokeColor = this.tool === "eraser" ? "#ffffff" : this.color;
 
-    // Render locally immediately for responsive feedback
+    // Render locally immediately for 0-latency responsive feedback
     this._renderSegment(this.lastX, this.lastY, coords.x, coords.y, strokeColor, this.width);
 
-    // Send compact segment to TCP Core via Bridge
-    this.transport.sendAction({
+    // Queue segment for batched transmission
+    this.pendingSegments.push({
       type: "draw",
       x1: this.lastX,
       y1: this.lastY,
@@ -156,12 +181,19 @@ class CollaborativeCanvas {
       mode: this.tool
     });
 
+    if (this.pendingSegments.length >= 25) {
+      this._flushPendingSegments();
+    }
+
     this.lastX = coords.x;
     this.lastY = coords.y;
   }
 
   _stopDrawing() {
-    this.isDrawing = false;
+    if (this.isDrawing) {
+      this.isDrawing = false;
+      this._flushPendingSegments();
+    }
   }
 
   _renderSegment(x1, y1, x2, y2, color, width) {
@@ -181,15 +213,25 @@ class CollaborativeCanvas {
     this._renderSegment(segment.x1, segment.y1, segment.x2, segment.y2, strokeColor, segment.width);
   }
 
+  drawRemoteBatch(batch) {
+    if (!Array.isArray(batch.segments)) return;
+    batch.segments.forEach(segment => {
+      this.drawRemoteSegment(segment);
+    });
+  }
+
   clearCanvasLocally() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
   loadHistory(strokes) {
     this.clearCanvasLocally();
+    if (!Array.isArray(strokes)) return;
     strokes.forEach(s => {
       if (s.type === "draw") {
         this.drawRemoteSegment(s);
+      } else if (s.type === "draw_batch") {
+        this.drawRemoteBatch(s);
       }
     });
   }

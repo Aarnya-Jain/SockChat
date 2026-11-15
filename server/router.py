@@ -41,6 +41,8 @@ class MessageRouter:
             self._handle_chat(conn_id, msg)
         elif msg_type == "draw":
             self._handle_draw(conn_id, msg)
+        elif msg_type == "draw_batch":
+            self._handle_draw_batch(conn_id, msg)
         elif msg_type == "clear":
             self._handle_clear(conn_id, msg)
         elif msg_type == "leave":
@@ -113,7 +115,7 @@ class MessageRouter:
             return
 
         text = msg["text"]
-        chat_entry = room.add_chat(user.name, text, user.color)
+        chat_entry = room.add_chat(user.name, text, user.color, user.user_id)
         chat_payload = {
             "type": "chat",
             "room": room.key,
@@ -152,6 +154,44 @@ class MessageRouter:
         # Broadcast drawing stroke to all other members in the room
         room_conn_ids = [u.conn_id for u in room.users.values()]
         self.conn_mgr.broadcast(room_conn_ids, stroke, exclude_conn_id=conn_id)
+
+    def _handle_draw_batch(self, conn_id: str, msg: Dict[str, Any]) -> None:
+        room = self.room_mgr.get_room_for_conn(conn_id)
+        user = self.room_mgr.get_user_for_conn(conn_id)
+        if not room or not user:
+            self.conn_mgr.send_to(conn_id, make_error_message("NOT_IN_ROOM", "Must be inside a room to draw"))
+            return
+
+        segments = msg.get("segments", [])
+        if not segments:
+            return
+
+        processed_segments = []
+        for s in segments:
+            stroke = {
+                "type": "draw",
+                "x1": s["x1"],
+                "y1": s["y1"],
+                "x2": s["x2"],
+                "y2": s["y2"],
+                "color": s["color"],
+                "width": s["width"],
+                "mode": s["mode"],
+                "from": user.name,
+                "user_id": user.user_id
+            }
+            room.add_stroke(stroke)
+            processed_segments.append(stroke)
+
+        batch_payload = {
+            "type": "draw_batch",
+            "from": user.name,
+            "user_id": user.user_id,
+            "segments": processed_segments
+        }
+
+        room_conn_ids = [u.conn_id for u in room.users.values()]
+        self.conn_mgr.broadcast(room_conn_ids, batch_payload, exclude_conn_id=conn_id)
 
     def _handle_clear(self, conn_id: str, msg: Dict[str, Any]) -> None:
         room = self.room_mgr.get_room_for_conn(conn_id)

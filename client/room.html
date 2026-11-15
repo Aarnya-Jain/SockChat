@@ -29,6 +29,9 @@
       <div class="user-count-badge">
         <span id="userCountDisplay">1</span>/<span id="maxUsersDisplay">4</span> Users
       </div>
+      <button id="toggleSidebarBtn" class="btn-sidebar-toggle active" type="button" title="Toggle Chat and Participants">
+        <span>💬</span> <span class="hide-sm">Chat</span>
+      </button>
       <button id="leaveBtn" class="btn-leave" type="button">Leave Room</button>
     </div>
   </header>
@@ -114,9 +117,12 @@
     // App Bootstrap & Coordination
     document.addEventListener("DOMContentLoaded", () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const action = urlParams.get("action");
+      let initialAction = urlParams.get("action");
       const roomParam = urlParams.get("room");
       const name = urlParams.get("name") || "Guest_" + Math.floor(Math.random() * 1000);
+
+      let currentRoom = roomParam || null;
+      let hasJoined = false;
 
       // Elements
       const roomBadge = document.getElementById("roomBadge");
@@ -128,6 +134,16 @@
       const participantsList = document.getElementById("participantsList");
       const leaveBtn = document.getElementById("leaveBtn");
       const toast = document.getElementById("toast");
+      const toggleSidebarBtn = document.getElementById("toggleSidebarBtn");
+      const sidebar = document.querySelector(".sidebar");
+
+      // Sidebar Toggle
+      if (toggleSidebarBtn && sidebar) {
+        toggleSidebarBtn.addEventListener("click", () => {
+          sidebar.classList.toggle("collapsed");
+          toggleSidebarBtn.classList.toggle("active", !sidebar.classList.contains("collapsed"));
+        });
+      }
 
       function showToast(msg, isError = false) {
         toast.textContent = msg;
@@ -185,7 +201,10 @@
 
         if (mtype === "bridge_connected") {
           // Handshake complete: dispatch room action
-          if (action === "create") {
+          if (hasJoined && currentRoom) {
+            // Reconnecting to active room
+            transport.sendAction({ type: "join_room", room: currentRoom, name: name });
+          } else if (initialAction === "create") {
             transport.sendAction({ type: "create_room", name: name });
           } else if (roomParam) {
             transport.sendAction({ type: "join_room", room: roomParam, name: name });
@@ -195,15 +214,18 @@
         }
 
         else if (mtype === "room_created" || mtype === "joined_success") {
-          const rKey = msg.room;
-          roomCodeDisplay.textContent = rKey;
+          hasJoined = true;
+          initialAction = null;
+          currentRoom = msg.room;
+          roomCodeDisplay.textContent = currentRoom;
           chatEngine.setCurrentUser(msg.user);
           // Update URL without reloading
-          const newUrl = `${window.location.pathname}?room=${rKey}&name=${encodeURIComponent(name)}`;
+          const newUrl = `${window.location.pathname}?room=${currentRoom}&name=${encodeURIComponent(name)}`;
           window.history.replaceState({}, "", newUrl);
         }
 
         else if (mtype === "room_state") {
+          currentRoom = msg.room;
           roomCodeDisplay.textContent = msg.room;
           userCountDisplay.textContent = msg.user_count;
           maxUsersDisplay.textContent = msg.max_users || 4;
@@ -240,6 +262,10 @@
           canvasEngine.drawRemoteSegment(msg);
         }
 
+        else if (mtype === "draw_batch") {
+          canvasEngine.drawRemoteBatch(msg);
+        }
+
         else if (mtype === "clear") {
           canvasEngine.clearCanvasLocally();
           chatEngine.addSystemMessage(`${msg.from || "A user"} cleared the canvas`);
@@ -257,11 +283,12 @@
         participantsList.innerHTML = "";
         if (!Array.isArray(users)) return;
         users.forEach((u) => {
+          const isMe = Boolean(chatEngine.currentUser && u.user_id === chatEngine.currentUser.user_id);
           const chip = document.createElement("div");
-          chip.className = "participant-chip";
+          chip.className = `participant-chip ${isMe ? "participant-chip-me" : ""}`;
           chip.innerHTML = `
             <span class="participant-dot" style="background-color: ${u.color || '#38bdf8'};"></span>
-            <span>${escapeHtml(u.name)}</span>
+            <span>${escapeHtml(u.name)}${isMe ? ' <span class="badge-you">(You)</span>' : ''}</span>
           `;
           participantsList.appendChild(chip);
         });

@@ -4,22 +4,17 @@
  */
 class NetworkTransport {
   constructor() {
-    this.sessionId = this._getOrCreateSessionId();
+    this.sessionId = this._createSessionId();
     this.eventSource = null;
     this.messageCallbacks = [];
     this.statusCallbacks = [];
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 10;
+    this.maxReconnectAttempts = 20;
     this.isManualClose = false;
   }
 
-  _getOrCreateSessionId() {
-    let sid = sessionStorage.getItem("sockchat_session_id");
-    if (!sid) {
-      sid = "sess_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
-      sessionStorage.setItem("sockchat_session_id", sid);
-    }
-    return sid;
+  _createSessionId() {
+    return "sess_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
   }
 
   connect() {

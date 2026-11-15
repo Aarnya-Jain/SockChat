@@ -14,6 +14,14 @@ class ChatManager {
 
   setCurrentUser(user) {
     this.currentUser = user;
+    if (user && user.user_id) {
+      const messages = this.container.querySelectorAll(".user-msg");
+      messages.forEach(el => {
+        if (el.dataset.userId === user.user_id) {
+          el.classList.add("my-msg");
+        }
+      });
+    }
   }
 
   _setupEvents() {
@@ -32,9 +40,12 @@ class ChatManager {
   }
 
   receiveMessage(msg) {
-    const isMe = this.currentUser && msg.user_id === this.currentUser.user_id;
+    const isMe = Boolean(this.currentUser && msg.user_id && msg.user_id === this.currentUser.user_id);
     const msgEl = document.createElement("div");
     msgEl.className = `chat-msg user-msg ${isMe ? "my-msg" : ""}`;
+    if (msg.user_id) {
+      msgEl.dataset.userId = msg.user_id;
+    }
 
     const timeStr = msg.timestamp
       ? new Date(msg.timestamp * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })

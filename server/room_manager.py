@@ -66,6 +66,12 @@ class RoomManager:
                     if user_to_remove:
                         prev_room.remove_user(user_to_remove.user_id)
 
+            # If an existing user has the same display name in this room, clean up the stale session
+            stale_users = [u for u in room.users.values() if u.name.lower() == name.lower()]
+            for su in stale_users:
+                room.remove_user(su.user_id)
+                self._conn_to_room.pop(su.conn_id, None)
+
             user = User(name=name, conn_id=conn_id)
             if not room.add_user(user):
                 return None, None, "ROOM_FULL"
